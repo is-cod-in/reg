@@ -38,6 +38,12 @@ function parseDNSRecords(content) {
 }
 
 async function addDNSRecord(subdomain, record) {
+    // Skip if the value is empty for A, CNAME, or AAAA records
+    if ((record.type === 'A' || record.type === 'CNAME' || record.type === 'AAAA') && !record.value) {
+        console.error(`Invalid DNS record in ${subdomain}.txt: ${JSON.stringify(record)}`);
+        return;
+    }
+
     const data = {
         type: record.type,
         name: `${subdomain}.is-cod.in`,
