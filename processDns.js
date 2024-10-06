@@ -60,17 +60,14 @@ async function addDNSRecord(subdomain, record) {
     const data = {
         type: record.type,
         name: `${subdomain}.is-cod.in`,
-        ttl: 1,
+        ttl: 3600,
         proxied: false
     };
 
-    // Use "target" instead of "content" for CNAME records
-    if (record.type === 'CNAME') {
-        data.target = record.value;
-    } else {
-        data.content = record.value; // For other record types
-    }
+    // Set content for all record types
+    data.content = record.value;
 
+    // Use priority for MX records
     if (record.type === 'MX' && record.priority !== null) {
         data.priority = record.priority; // Use user-defined priority for MX records
     }
