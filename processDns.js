@@ -69,6 +69,8 @@ async function addDNSRecord(subdomain, record) {
         data.priority = record.priority; // Use user-defined priority for MX records
     }
 
+    console.log(`Sending to Cloudflare: ${JSON.stringify(data)}`);
+
     try {
         const response = await axios.post(CLOUDFLARE_API_URL, data, {
             headers: {
@@ -76,6 +78,7 @@ async function addDNSRecord(subdomain, record) {
                 'Content-Type': 'application/json'
             }
         });
+
         if (response.data.success) {
             console.log(`Successfully added DNS record: ${JSON.stringify(response.data.result)}`);
         } else {
