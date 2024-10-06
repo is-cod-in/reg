@@ -1,0 +1,5 @@
+A 192.0.2.1
+CNAME target.com
+MX mailserver.com 10
+TXT "text record"
+AAAA 2001:0db8::1
