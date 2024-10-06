@@ -1,75 +1,78 @@
-const fs = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
 const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/dns_records`;
 
-async function processFiles() {
+async function processPullRequest() {
     const recordsDir = path.join(__dirname, 'records');
-    const files = await fs.readdir(recordsDir);
-
+    const files = fs.readdirSync(recordsDir);
+    
     for (const file of files) {
-        if (path.extname(file) === '.txt') {
-            const dnsFilePath = path.join(recordsDir, file);
-            const content = await fs.readFile(dnsFilePath, 'utf-8');
-            const subdomain = path.basename(file, '.txt');
-
-            const records = content.split('\n').map(line => line.trim()).filter(line => line);
-
-            for (const recordLine of records) {
-                const parts = recordLine.split(' ');
-
-                if (parts.length < 2) {
-                    console.error(`Invalid format in ${file}: "${recordLine}"`);
-                    continue;
-                }
-
-                const type = parts.shift();
-                const priority = type === 'MX' ? parseInt(parts.pop()) : null; // Get priority for MX records
-                const recordValue = parts.join(' '); // Join remaining parts as value
-
-                if (!recordValue) {
-                    console.error(`Invalid DNS record in ${file}: {"type":"${type}","value":"","priority":${priority}}`);
-                    continue;
-                }
-
-                const record = {
-                    type,
-                    value: recordValue,
-                    priority: priority || null
-                };
-
+        const filePath = path.join(recordsDir, file);
+        const content = fs.readFileSync(filePath, 'utf-8').trim();
+        
+        if (content) {
+            const records = parseDNSRecords(content);
+            for (const record of records) {
                 console.log(`Processing record: ${JSON.stringify(record)}`);
-
-                if (isValidDNSRecord(record)) {
-                    await addDNSRecord(subdomain, record);
-                } else {
-                    console.error(`Invalid DNS record in ${file}: ${JSON.stringify(record)}`);
-                }
+                await addDNSRecord(file.replace('.txt', ''), record);
             }
         }
     }
 }
 
-function isValidDNSRecord(record) {
-    const validTypes = ['A', 'CNAME', 'MX', 'TXT', 'AAAA'];
-    return validTypes.includes(record.type) && record.value && !record.value.includes('is-cod.in');
+function parseDNSRecords(content) {
+    return content.split('\n').map(line => {
+        const parts = line.split(' ');
+        const type = parts[0];
+        const value = parts.slice(1, -1).join(' '); // Join all but the last part for the value
+        const priority = parts.length > 2 && type === 'MX' ? parseInt(parts[parts.length - 1]) : null;
+
+        return {
+            type,
+            value,
+            priority
+        };
+    });
 }
 
 async function addDNSRecord(subdomain, record) {
     const data = {
         type: record.type,
         name: `${subdomain}.is-cod.in`,
-        ttl: 3600,
-        proxied: false
+        ttl: 1,
+        proxied: false,
+        content: record.value
     };
 
-    // Set content for all record types
-    data.content = record.value;
-
-    // Use priority for MX records
     if (record.type === 'MX' && record.priority !== null) {
-        data.priority = record.priority; // Use user-defined priority for MX records
+        data.priority = record.priority;
+    }
+
+    console.log(`Checking for existing records for: ${data.name} (${record.type})`);
+
+    try {
+        const existingRecordsResponse = await axios.get(CLOUDFLARE_API_URL, {
+            headers: {
+                'Authorization': `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            params: {
+                name: data.name,
+                type: record.type
+            }
+        });
+
+        const existingRecords = existingRecordsResponse.data.result;
+
+        if (existingRecords.length > 0) {
+            console.log(`Record already exists: ${JSON.stringify(existingRecords)}`);
+            return; // Skip adding if it already exists
+        }
+    } catch (error) {
+        console.error(`Error checking existing records: ${error.response ? JSON.stringify(error.response.data) : error.message}`);
+        return;
     }
 
     console.log(`Sending to Cloudflare: ${JSON.stringify(data)}`);
@@ -92,7 +95,4 @@ async function addDNSRecord(subdomain, record) {
     }
 }
 
-
-processFiles().catch(error => {
-    console.error(`Failed to process files: ${error.message}`);
-});
+processPullRequest();
