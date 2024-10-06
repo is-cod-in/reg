@@ -1,5 +1,5 @@
 A 192.0.2.1
 CNAME www.example.com
-AAAA 2001:0db8::1
+AAAA 2001:db8::ff00:42:8329
 MX mailserver.com 10
-TXT "This is a text record"
+TXT "This is a text"
