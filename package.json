@@ -1,0 +1,12 @@
+{
+  "name": "dns-config-manager",
+  "version": "1.0.0",
+  "main": "processDns.js",
+  "scripts": {
+    "start": "node processDns.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "fs-extra": "^10.0.0"
+  }
+}
