@@ -4,6 +4,7 @@ const axios = require('axios');
 
 const CLOUDFLARE_API_URL = `https://api.cloudflare.com/client/v4/zones/${process.env.CLOUDFLARE_ZONE_ID}/dns_records`;
 
+// Read and process all DNS records from files
 async function processPullRequest() {
     const recordsDir = path.join(__dirname, 'records');
     const files = fs.readdirSync(recordsDir);
@@ -22,21 +23,19 @@ async function processPullRequest() {
     }
 }
 
+// Parse DNS records from file content
 function parseDNSRecords(content) {
     return content.split('\n').map(line => {
-        const parts = line.split(' ');
+        const parts = line.split(' ').filter(part => part);
         const type = parts[0];
         const value = parts.slice(1, -1).join(' '); // Join all but the last part for the value
-        const priority = parts.length > 2 && type === 'MX' ? parseInt(parts[parts.length - 1]) : null;
+        const priority = (parts.length > 2 && type === 'MX') ? parseInt(parts[parts.length - 1]) : null;
 
-        return {
-            type,
-            value,
-            priority
-        };
+        return { type, value, priority };
     });
 }
 
+// Add a DNS record to Cloudflare
 async function addDNSRecord(subdomain, record) {
     // Skip if the value is empty for A, CNAME, or AAAA records
     if ((record.type === 'A' || record.type === 'CNAME' || record.type === 'AAAA') && !record.value) {
@@ -101,4 +100,5 @@ async function addDNSRecord(subdomain, record) {
     }
 }
 
+// Start the process
 processPullRequest();
