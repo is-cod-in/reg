@@ -19,29 +19,26 @@ async function processFiles() {
             for (const recordLine of records) {
                 const parts = recordLine.split(' ');
 
-                // Ensure there are at least 2 parts (type and value)
                 if (parts.length < 2) {
                     console.error(`Invalid format in ${file}: "${recordLine}"`);
                     continue;
                 }
 
                 const type = parts.shift();
-                const recordValue = parts.slice(0, -1).join(' '); // All but the last part
-                const priority = parts[parts.length - 1]; // Last part as priority for MX
+                const priority = type === 'MX' ? parseInt(parts.pop()) : null; // Get priority for MX records
+                const recordValue = parts.join(' '); // Join remaining parts as value
 
-                // Ensure that the recordValue is not empty
                 if (!recordValue) {
-                    console.error(`Invalid DNS record in ${file}: {"type":"${type}","value":"","priority":${type === 'MX' ? priority : 'null'}}`);
+                    console.error(`Invalid DNS record in ${file}: {"type":"${type}","value":"","priority":${priority}}`);
                     continue;
                 }
 
                 const record = {
                     type,
                     value: recordValue,
-                    priority: type === 'MX' ? parseInt(priority) : null
+                    priority: priority || null
                 };
 
-                // Log the constructed record for debugging
                 console.log(`Processing record: ${JSON.stringify(record)}`);
 
                 if (isValidDNSRecord(record)) {
