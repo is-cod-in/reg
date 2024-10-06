@@ -41,6 +41,9 @@ async function processFiles() {
                     priority: type === 'MX' ? parseInt(priority) : null
                 };
 
+                // Log the constructed record for debugging
+                console.log(`Processing record: ${JSON.stringify(record)}`);
+
                 if (isValidDNSRecord(record)) {
                     await addDNSRecord(subdomain, record);
                 } else {
