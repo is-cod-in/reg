@@ -11,7 +11,7 @@ async function processFiles() {
     for (const file of files) {
         if (path.extname(file) === '.txt') {
             const dnsFilePath = path.join(recordsDir, file);
-            const content = await fs.readFile(dnsFilePath, 'utf-8').trim();
+            const content = await fs.readFile(dnsFilePath, 'utf-8'); // Ensure reading as a string
             const subdomain = path.basename(file, '.txt');
 
             const records = content.split('\n').map(line => line.trim()).filter(line => line);
