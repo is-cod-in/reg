@@ -60,10 +60,16 @@ async function addDNSRecord(subdomain, record) {
     const data = {
         type: record.type,
         name: `${subdomain}.is-cod.in`,
-        content: record.value,
         ttl: 1,
         proxied: false
     };
+
+    // Use "target" instead of "content" for CNAME records
+    if (record.type === 'CNAME') {
+        data.target = record.value;
+    } else {
+        data.content = record.value; // For other record types
+    }
 
     if (record.type === 'MX' && record.priority !== null) {
         data.priority = record.priority; // Use user-defined priority for MX records
@@ -85,9 +91,10 @@ async function addDNSRecord(subdomain, record) {
             console.error(`Error adding DNS record: ${JSON.stringify(response.data.errors)}`);
         }
     } catch (error) {
-        console.error(`Error adding DNS record: ${error.response ? error.response.data : error.message}`);
+        console.error(`Error adding DNS record: ${error.response ? JSON.stringify(error.response.data) : error.message}`);
     }
 }
+
 
 processFiles().catch(error => {
     console.error(`Failed to process files: ${error.message}`);
