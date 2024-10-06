@@ -11,16 +11,29 @@ async function processFiles() {
     for (const file of files) {
         if (path.extname(file) === '.txt') {
             const dnsFilePath = path.join(recordsDir, file);
-            const content = await fs.readFile(dnsFilePath, 'utf-8'); // Ensure reading as a string
+            const content = await fs.readFile(dnsFilePath, 'utf-8');
             const subdomain = path.basename(file, '.txt');
 
             const records = content.split('\n').map(line => line.trim()).filter(line => line);
 
             for (const recordLine of records) {
                 const parts = recordLine.split(' ');
+
+                // Ensure there are at least 2 parts (type and value)
+                if (parts.length < 2) {
+                    console.error(`Invalid format in ${file}: "${recordLine}"`);
+                    continue;
+                }
+
                 const type = parts.shift();
                 const recordValue = parts.slice(0, -1).join(' '); // All but the last part
                 const priority = parts[parts.length - 1]; // Last part as priority for MX
+
+                // Ensure that the recordValue is not empty
+                if (!recordValue) {
+                    console.error(`Invalid DNS record in ${file}: {"type":"${type}","value":"","priority":${type === 'MX' ? priority : 'null'}}`);
+                    continue;
+                }
 
                 const record = {
                     type,
